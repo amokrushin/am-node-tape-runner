@@ -5,7 +5,8 @@
     "max-len": ["error", 120],
     "no-underscore-dangle": ["off"],
     "import/no-unresolved": "off",
-    "import/no-extraneous-dependencies": "off"
+    "import/no-extraneous-dependencies": "off",
+    "no-unused-expressions": ["error", {"allowShortCircuit": true}]
   },
   "env": {
     "node": true

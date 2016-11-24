@@ -110,7 +110,11 @@ function serveCoverageHtml(port) {
 }
 
 function filterChildArgs(args) {
-    return _.pull(args, '-w', '--watch', '--web');
+    const _args = _.clone(args);
+    const ix = _args.indexOf('--web');
+    ~ix && _args.splice(ix, 2);
+    _.pull(args, '-w', '--watch');
+    return _args;
 }
 
 function runWatcher(args) {
