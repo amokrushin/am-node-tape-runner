@@ -7,7 +7,7 @@ const path = require('path');
 const { fork } = require('child_process');
 const { PassThrough } = require('stream');
 
-const nycPath = path.resolve(__dirname, './node_modules/nyc/bin/nyc.js');
+const nycPath = require.resolve('nyc/bin/nyc.js');
 const rootPath = path.join(process.cwd(), '/test');
 
 const Child = require('./lib/Child');
