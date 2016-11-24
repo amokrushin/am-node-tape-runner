@@ -2,10 +2,23 @@
   "name": "am-node-tape-runner",
   "version": "0.1.0",
   "description": "",
+  "license": "MIT",
+  "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
-  "license": "MIT"
+  "dependencies": {
+    "am-tap-dot": "https://github.com/amokrushin/am-tap-dot",
+    "async": "^2.1.4",
+    "chalk": "^1.1.3",
+    "fs-extra": "^1.0.0",
+    "lodash": "^4.17.2",
+    "minimatch": "^3.0.3",
+    "nyc": "^10.0.0",
+    "static-server": "^2.0.3",
+    "tap-spec": "^4.1.1",
+    "tap-summary": "^3.0.1",
+    "yargs": "^6.4.0"
+  }
 }
