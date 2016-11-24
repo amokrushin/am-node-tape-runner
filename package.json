@@ -1,0 +1,11 @@
+{
+  "name": "am-node-tape-runner",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
+  "license": "MIT"
+}
