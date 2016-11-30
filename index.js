@@ -29,7 +29,7 @@ const argv = require('yargs')
         },
         c: {
             alias: 'coverage',
-            choices: ['text', 'html'],
+            choices: ['html', 'json', 'json-summary', 'lcov', 'lcovonly', 'text', 'text-lcov', 'text-summary'],
             describe: 'coverage report',
         },
         web: {
