@@ -1,4 +1,6 @@
 # am-node-tape-runner
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/amokrushin/am-node-tape-runner/master/LICENSE.txt)
+[![Codecov](https://img.shields.io/codecov/c/github/amokrushin/am-node-tape-runner/master.svg)](https://codecov.io/github/amokrushin/am-node-tape-runner?branch=master)
 
 Put index.js file into ./test dir
 ```js
