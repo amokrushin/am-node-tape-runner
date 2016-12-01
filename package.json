@@ -14,7 +14,7 @@
     "url": "git+https://github.com/amokrushin/am-node-tape-runner.git"
   },
   "scripts": {
-    "test": "exit 0"
+    "test": "node test"
   },
   "dependencies": {
     "am-tap-dot": "^1.0.1",
