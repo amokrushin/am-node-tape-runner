@@ -5,10 +5,13 @@ const fs = require('fs-extra');
 const async = require('async');
 
 const runnerPath = process.cwd();
+const coverageDir = path.join(runnerPath, 'coverage-test');
 const successTestPath = path.join(__dirname, 'success.js');
+const coverageDirArg = ['--coverage-dir', coverageDir];
+const testArg = ['test', successTestPath];
 
 test('without args', t => {
-    const runner = fork(runnerPath, ['test', successTestPath], { silent: true });
+    const runner = fork(runnerPath, [...testArg], { silent: true });
     runner.on('exit', code => {
         t.equal(code, 0, 'exit code 0');
         t.end();
@@ -20,7 +23,7 @@ test('-r tape', t => {
     async.parallel({
         actual: cb => {
             let output = '';
-            const runner = fork(runnerPath, ['test', successTestPath, '-r', 'tape'], { silent: true });
+            const runner = fork(runnerPath, [...testArg, '-r', 'tape'], { silent: true });
             runner.stdout.on('data', data => {
                 output += data.toString();
             });
@@ -42,7 +45,7 @@ test('-r silent', t => {
     async.parallel({
         actual: cb => {
             let output = '';
-            const runner = fork(runnerPath, ['test', successTestPath, '-r', 'silent'], { silent: true });
+            const runner = fork(runnerPath, [...testArg, '-r', 'silent'], { silent: true });
             runner.stdout.on('data', data => {
                 output += data.toString();
             });
@@ -62,17 +65,17 @@ test('-r silent', t => {
 
 test('-c lcov', t => {
     async.series({
-        cleanupCoverageDir: cb => fs.remove(path.join(runnerPath, 'coverage'), cb),
+        cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: cb => {
-            const runner = fork(runnerPath, ['test', successTestPath, '-c', 'lcov'], { silent: true });
+            const runner = fork(runnerPath, [...testArg, '-c', 'lcov', ...coverageDirArg], { silent: true });
             runner.on('exit', code => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
             });
             runner.stderr.on('data', data => t.error(data.toString()));
         },
-        lcovInfo: cb => fs.access(path.join(runnerPath, 'coverage/lcov.info'), cb),
-        lcovReport: cb => fs.access(path.join(runnerPath, 'coverage/lcov-report'), cb),
+        lcovInfo: cb => fs.access(path.join(coverageDir, 'lcov.info'), cb),
+        lcovReport: cb => fs.access(path.join(coverageDir, 'lcov-report'), cb),
     }, (err) => {
         if (err) t.ifError(err);
         t.pass('lcov.info file exists');
@@ -83,9 +86,9 @@ test('-c lcov', t => {
 
 test('-c json -c json-summary', t => {
     async.series({
-        cleanupCoverageDir: cb => fs.remove(path.join(runnerPath, 'coverage'), cb),
+        cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: cb => {
-            const runner = fork(runnerPath, ['test', successTestPath, '-c', 'json', '-c', 'json-summary'],
+            const runner = fork(runnerPath, [...testArg, '-c', 'json', '-c', 'json-summary', ...coverageDirArg],
                 { silent: true });
             runner.on('exit', code => {
                 t.equal(code, 0, 'exit code 0');
@@ -93,8 +96,8 @@ test('-c json -c json-summary', t => {
             });
             runner.stderr.on('data', data => t.error(data.toString()));
         },
-        coverageFinal: cb => fs.access(path.join(runnerPath, 'coverage/coverage-final.json'), cb),
-        coverageSummary: cb => fs.access(path.join(runnerPath, 'coverage/coverage-summary.json'), cb),
+        coverageFinal: cb => fs.access(path.join(coverageDir, 'coverage-final.json'), cb),
+        coverageSummary: cb => fs.access(path.join(coverageDir, 'coverage-summary.json'), cb),
     }, (err) => {
         if (err) t.ifError(err);
         t.pass('coverage-final.json file exists');
@@ -105,16 +108,16 @@ test('-c json -c json-summary', t => {
 
 test('-c html', t => {
     async.series({
-        cleanupCoverageDir: cb => fs.remove(path.join(runnerPath, 'coverage'), cb),
+        cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: cb => {
-            const runner = fork(runnerPath, ['test', successTestPath, '-c', 'html'], { silent: true });
+            const runner = fork(runnerPath, [...testArg, '-c', 'html', ...coverageDirArg], { silent: true });
             runner.on('exit', code => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
             });
             runner.stderr.on('data', data => t.error(data.toString()));
         },
-        lcovInfo: cb => fs.access(path.join(runnerPath, 'coverage/index.html'), cb),
+        lcovInfo: cb => fs.access(path.join(coverageDir, 'index.html'), cb),
     }, (err) => {
         if (err) t.ifError(err);
         t.pass('index.html file exists');
@@ -123,7 +126,7 @@ test('-c html', t => {
 });
 
 test('-c console', t => {
-    const runner = fork(runnerPath, ['test', successTestPath, '-c', 'console'], { silent: true });
+    const runner = fork(runnerPath, [...testArg, '-c', 'console', ...coverageDirArg], { silent: true });
     t.plan(3);
     runner.on('exit', code => {
         t.equal(code, 0, 'exit code 0');
@@ -131,8 +134,9 @@ test('-c console', t => {
     });
     runner.on('message', ({ name, body }) => {
         if (name === 'run nyc') {
-            t.equal(body[0], '--reporter=text', 'nyc called with arg --reporter=text');
-            t.equal(body[1], '--reporter=text-summary', 'nyc called with arg --reporter=text-summary');
+            const nycArgs = body.slice(0, body.indexOf('node'));
+            t.ok(nycArgs.includes('--reporter=text'), 'nyc called with arg --reporter=text');
+            t.ok(nycArgs.includes('--reporter=text-summary'), 'nyc called with arg --reporter=text-summary');
         }
         if (name === 'error') {
             t.fail(body);
@@ -142,7 +146,8 @@ test('-c console', t => {
 });
 
 test('--web 8080 -c console', t => {
-    const runner = fork(runnerPath, ['test', successTestPath, '--web', '8080', '-c', 'console'], { silent: true });
+    const runner = fork(runnerPath, [...testArg, '--web', '8080', '-c', 'console', ...coverageDirArg],
+        { silent: true });
     t.plan(1);
     runner.on('exit', () => {
         t.end();
@@ -155,7 +160,7 @@ test('--web 8080 -c console', t => {
 });
 
 test('-w', t => {
-    const runner = fork(runnerPath, ['test', successTestPath, '-w'], { silent: true });
+    const runner = fork(runnerPath, [...testArg, '-w', ...coverageDirArg], { silent: true });
     const counter = {};
     t.plan(18);
     runner.on('exit', () => t.end);
@@ -237,4 +242,10 @@ test('-w', t => {
         }
     });
     runner.stderr.on('data', data => t.error(data.toString()));
+});
+
+test('after', t => {
+    process.nextTick(() => {
+        fs.remove(coverageDir, t.end);
+    });
 });

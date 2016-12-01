@@ -53,6 +53,11 @@ const argv = require('yargs')
             boolean: true,
         },
         h: { alias: 'help' },
+        coverageDir: {
+            describe: 'see nyc --report-dir',
+            type: 'string',
+            nargs: 1,
+        },
     })
     .implies('web', 'coverage')
     .check(a => {
@@ -114,7 +119,8 @@ function getTestFiles() {
 }
 
 function getCoverageFiles() {
-    const report = fs.readJsonSync(path.resolve(rootPath, '../coverage/coverage-summary.json'));
+    const coverageDir = argv.coverageDir || path.resolve(rootPath, '../coverage');
+    const report = fs.readJsonSync(path.join(coverageDir, 'coverage-summary.json'));
     return _.pull(_.keys(report), 'total');
 }
 
@@ -247,7 +253,9 @@ if ((argv.coverage || argv.watch) && isMaster) {
         args.unshift('--reporter=json-summary');
     }
 
-    debug('WRAP WITH NYC', `nyc ${args.join(' ')}`);
+    if (argv.coverageDir) {
+        args.unshift(`--report-dir=${argv.coverageDir}`);
+    }
 
     ipcSend({ name: 'run nyc', body: args });
 
