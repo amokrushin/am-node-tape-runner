@@ -1,9 +1,9 @@
 # am-node-tape-runner
 [![Latest Stable Version](https://img.shields.io/npm/v/am-node-tape-runner.svg)](https://www.npmjs.com/package/am-node-tape-runner)
-[![License](https://img.shields.io/npm/l/am-node-tape-runner.svg)](https://www.npmjs.com/package/am-node-tape-runner)
 [![Build Status](https://img.shields.io/travis/amokrushin/am-node-tape-runner/master.svg)](https://travis-ci.org/amokrushin/am-node-tape-runner)
 [![Test Coverage](https://img.shields.io/codecov/c/github/amokrushin/am-node-tape-runner/master.svg)](https://codecov.io/github/amokrushin/am-node-tape-runner?branch=master)
 [![Dependency Status](https://img.shields.io/david/amokrushin/am-node-tape-runner.svg)](https://david-dm.org/amokrushin/am-node-tape-runner)
+[![License](https://img.shields.io/npm/l/am-node-tape-runner.svg)](https://raw.githubusercontent.com/amokrushin/am-node-tape-runner/master/LICENSE.txt)
 
 Put index.js file into ./test dir
 ```js
