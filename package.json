@@ -14,7 +14,8 @@
     "url": "git+https://github.com/amokrushin/am-node-tape-runner.git"
   },
   "scripts": {
-    "test": "node test"
+    "test": "node test",
+    "codecov": "node test -c lcovonly && ./node_modules/.bin/codecov"
   },
   "dependencies": {
     "am-tap-dot": "^1.0.1",
@@ -30,6 +31,7 @@
     "yargs": "^6.4.0"
   },
   "devDependencies": {
+    "codecov": "^1.0.1",
     "tape": "^4.6.3"
   }
 }
