@@ -6,6 +6,7 @@ const chalk = require('chalk');
 const path = require('path');
 const { fork } = require('child_process');
 const { PassThrough } = require('stream');
+const debug = require('util').debuglog('am-node-tape-runner');
 
 const nycPath = require.resolve('nyc/bin/nyc.js');
 const rootPath = path.join(process.cwd(), '/test');
@@ -23,14 +24,15 @@ const argv = require('yargs')
     .options({
         r: {
             alias: 'reporter',
-            choices: ['dots', 'spec', 'summary', 'tape'],
-            describe: 'coverage report',
+            choices: ['dots', 'spec', 'summary', 'tape', 'silent'],
+            describe: 'test reporter',
             default: 'dots',
         },
         c: {
             alias: 'coverage',
-            choices: ['html', 'json', 'json-summary', 'lcov', 'lcovonly', 'text', 'text-lcov', 'text-summary'],
-            describe: 'coverage report',
+            choices: ['console', 'html', 'json', 'json-summary', 'lcov', 'lcovonly',
+                'text', 'text-lcov', 'text-summary'],
+            describe: 'coverage reporter',
         },
         web: {
             describe: 'web server for coverage report',
@@ -52,19 +54,40 @@ const argv = require('yargs')
         },
         h: { alias: 'help' },
     })
+    .implies('web', 'coverage')
+    .check(a => {
+        if (a.web && !_.castArray(a.coverage).includes('html')) {
+            throw new Error('Implications failed:\n web -> coverage html');
+        }
+        return true;
+    })
+    .epilogue('For more information see https://github.com/amokrushin/stream-zip')
+    .help()
     .argv;
 
 const isMaster = !argv.child;
-const isSummary = !argv._.length;
 const ignorePath = ['mock/*', 'resources/*', 'skip/*', 'util/*', 'index.js'];
 const filterPath = _.map(argv._, v => v.replace(`${rootPath}/`, '').replace('./test/', ''));
+const isSilent = argv.reporter === 'silent';
+
+debug('START', `reporter: ${argv.reporter}`);
+
+function ipcSend(message) {
+    if (process.send) process.send(message);
+}
 
 function relativePath(p) {
     return p.replace(`${rootPath}/`, '');
 }
 
+function outputWrite(str) {
+    if (!isSilent) {
+        process.stdout.write(str);
+    }
+}
+
 const verbose = argv.verbose
-    ? (...args) => process.stdout.write(`${chalk.cyan(args[0])}\n${args.slice(1).join('')}`)
+    ? (...args) => outputWrite(`${chalk.cyan(args[0])}\n${args.slice(1).join('')}`)
     : () => {};
 
 function tapeReporterStream() {
@@ -75,6 +98,8 @@ function tapeReporterStream() {
     // eslint-disable-next-line global-require, import/newline-after-import
     if (argv.reporter === 'dots') return require('am-tap-dot').amTapDot();
     if (argv.reporter === 'tape') return new PassThrough();
+    if (argv.reporter === 'silent') return new PassThrough();
+    /* istanbul ignore next */
     throw new Error('invalid reporter value');
 }
 
@@ -103,9 +128,9 @@ function serveCoverageHtml(port) {
         port,
     });
     server.start(() => {
-        process.stdout.write('  \n');
-        process.stdout.write(`  View coverage report at ${chalk.cyan(`http://localhost:${server.port}`)}\n`);
-        process.stdout.write('  Press ctrl+c to exit...\n');
+        outputWrite('  \n');
+        outputWrite(`  View coverage report at ${chalk.cyan(`http://localhost:${server.port}`)}\n`);
+        outputWrite('  Press ctrl+c to exit...\n');
     });
 }
 
@@ -113,74 +138,135 @@ function filterChildArgs(args) {
     const _args = _.clone(args);
     const ix = _args.indexOf('--web');
     ~ix && _args.splice(ix, 2);
-    _.pull(args, '-w', '--watch');
+    _.pull(_args, '-w', '--watch');
+    ipcSend({ name: 'filter', body: _args });
     return _args;
 }
 
 function runWatcher(args) {
     let child = new Child(null, [], { verbose });
     const watcher = new Watcher({ verbose });
+    const watchingFiles = _.concat(getTestFiles(), getCoverageFiles());
+    const _args = filterChildArgs(args);
     watcher
-        .watch(_.concat(getTestFiles(), getCoverageFiles()))
+        .watch(watchingFiles)
         .on('change', () => {
+            ipcSend({ name: 'watcher event' });
             child.kill();
         })
         .on('debounce', () => {
             child.exit().then(() => {
-                child = new Child(nycPath, filterChildArgs(args), { verbose });
+                child = new Child(nycPath, _args, { verbose });
+                ipcSend({ name: 'child fork', body: { id: child.id, script: nycPath, args: _args } });
                 child.process.once('exit', () => {
+                    ipcSend({ name: 'child exit', body: { id: child.id } });
+                    // child.process.removeAllListeners();
                     watcher.watch(_.concat(getTestFiles(), getCoverageFiles()));
                 });
+                // bubble child message
+                child.process.on('message', message => {
+                    ipcSend(message);
+                });
+                // child.process.on('error', message => ipcSend(message));
             });
         });
+    process.nextTick(() => {
+        ipcSend({ name: 'run watcher', body: watchingFiles });
+    });
+}
+
+function outputFilenameHeader(filePath, isFirst) {
+    let filenameHeader = '';
+    if (argv.reporter === 'tape') {
+        const sof = isFirst ? '#\n#' : '\n#\n#';
+        const eof = '\n#\n';
+        const header = relativePath(filePath);
+        filenameHeader = `${sof}${header}${eof}`;
+    } else if (argv.reporter === 'dots') {
+        const sof = isFirst ? '\n ' : '\n\n ';
+        const eof = isFirst ? '' : '\n';
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filePath), 80, ' ')}`);
+        filenameHeader = `${sof}${header}${eof}`;
+    } else if (!isSilent) {
+        const sof = isFirst ? '\n ' : '\n\n ';
+        const eof = isFirst ? '\n' : '\n';
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filePath), 80, ' ')}`);
+        filenameHeader = `${sof}${header}${eof}`;
+    }
+    return filenameHeader;
 }
 
 function runTest() {
     const reporter = tapeReporterStream();
-    reporter.pipe(process.stdout);
+    if (!isSilent) {
+        reporter.pipe(process.stdout);
+    }
     const testFiles = getTestFiles();
+    debug('TEST FILES', `\n  • ${testFiles.join('\n  • ')}\n`);
     async.eachSeries(testFiles, (filePath, cb) => {
-        const sof = filePath === testFiles[0] ? '\n ' : '\n\n ';
-        const eof = filePath === testFiles[0] ? '' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filePath), 80, ' ')}`);
         const child = fork(filePath, [], { silent: true });
-        process.stdout.write(`${sof}${header}${eof}`);
+        outputWrite(outputFilenameHeader(filePath, filePath === testFiles[0]));
         reporter.emit('dot-line-break');
         child.stdout.on('data', data => {
             reporter.write(data.toString());
         });
-        child.on('exit', () => cb());
+        child.once('exit', () => cb());
         child.stdout.on('end', () => {});
         child.stderr.pipe(process.stderr);
+        child.once('error', err => ipcSend({ name: 'error', body: err }));
     }, () => {
         reporter.end();
     });
 }
+
+ipcSend({ name: 'start', body: argv });
 
 if (isMaster) {
     verbose('TEST FILES', getTestFiles().map(f => `  ${f}\n`).join(''));
 }
 
 if ((argv.coverage || argv.watch) && isMaster) {
-    const args = ['--reporter=json-summary', 'node', __filename].concat(process.argv.slice(2), '--child');
-    if (argv.coverage === 'html') {
-        args.unshift('--reporter=html');
-    }
+    ipcSend({ name: 'run master' });
+    const args = ['node', __filename].concat(process.argv.slice(2), '--child');
     if (argv.coverage) {
-        if (isSummary) {
-            args.unshift('--reporter=text-summary');
+        const reporters = [];
+        if (_.castArray(argv.coverage).includes('console')) {
+            reporters.push('text', 'text-summary');
         }
-        args.unshift('--reporter=text');
+        if (_.isArray(argv.coverage)) {
+            reporters.push(..._.without(argv.coverage, 'console'));
+            // Array.prototype.push.apply(reporters, _.without(argv.coverage, 'console'));
+        } else if (argv.coverage !== 'console') {
+            reporters.push(argv.coverage);
+        }
+        if (argv.watch) {
+            reporters.push('json-summary');
+        }
+        _.uniq(reporters).reverse().forEach(reporter => args.unshift(`--reporter=${reporter}`));
+    } else if (argv.watch) {
+        args.unshift('--reporter=json-summary');
     }
+
+    debug('WRAP WITH NYC', `nyc ${args.join(' ')}`);
+
+    ipcSend({ name: 'run nyc', body: args });
+
     const test = fork(nycPath, args, { stdio: 'inherit' });
     test.on('exit', () => {
-        if (argv.coverage === 'html' && argv.web) {
+        if (argv.web && _.castArray(argv.coverage).includes('html')) {
             serveCoverageHtml(argv.web);
         }
         if (argv.watch) {
             runWatcher(args);
         }
     });
+    // bubble child message
+    test.on('message', message => {
+        ipcSend(message);
+    });
+    test.on('error', err => ipcSend({ name: 'error', body: err }));
 } else {
+    debug('RUN TESTS');
+    ipcSend({ name: 'run test' });
     runTest();
 }

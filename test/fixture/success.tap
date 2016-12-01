@@ -1,0 +1,13 @@
+#
+#success.js
+#
+TAP version 13
+# test success fixture
+ok 1 ok
+
+1..1
+# tests 1
+# pass  1
+
+# ok
+
