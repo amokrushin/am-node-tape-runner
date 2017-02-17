@@ -5,12 +5,16 @@
 [![Dependency Status](https://img.shields.io/david/amokrushin/am-node-tape-runner.svg)](https://david-dm.org/amokrushin/am-node-tape-runner)
 [![License](https://img.shields.io/npm/l/am-node-tape-runner.svg)](https://raw.githubusercontent.com/amokrushin/am-node-tape-runner/master/LICENSE.txt)
 
-Put index.js file into ./test dir
+## Installation
 ```js
-require('am-node-tape-runner');
+# with npm
+$ npm i am-node-tape-runner -D
+
+# with yarn
+$ yarn add am-node-tape-runner -D
 ```
 
-Then run tests with
+## Usage
 
 global
 ```bash
