@@ -10,24 +10,24 @@ const successTestPath = path.join(__dirname, 'success.js');
 const coverageDirArg = ['--coverage-dir', coverageDir];
 const testArg = ['test', successTestPath];
 
-test('without args', t => {
+test('without args', (t) => {
     const runner = fork(runnerPath, [...testArg], { silent: true });
-    runner.on('exit', code => {
+    runner.on('exit', (code) => {
         t.equal(code, 0, 'exit code 0');
         t.end();
     });
     runner.stderr.on('data', data => t.error(data.toString()));
 });
 
-test('-r tape', t => {
+test('-r tape', (t) => {
     async.parallel({
-        actual: cb => {
+        actual: (cb) => {
             let output = '';
             const runner = fork(runnerPath, [...testArg, '-r', 'tape'], { silent: true });
-            runner.stdout.on('data', data => {
+            runner.stdout.on('data', (data) => {
                 output += data.toString();
             });
-            runner.on('exit', code => {
+            runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb(null, output);
             });
@@ -41,15 +41,15 @@ test('-r tape', t => {
     });
 });
 
-test('-r silent', t => {
+test('-r silent', (t) => {
     async.parallel({
-        actual: cb => {
+        actual: (cb) => {
             let output = '';
             const runner = fork(runnerPath, [...testArg, '-r', 'silent'], { silent: true });
-            runner.stdout.on('data', data => {
+            runner.stdout.on('data', (data) => {
                 output += data.toString();
             });
-            runner.on('exit', code => {
+            runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb(null, output);
             });
@@ -63,12 +63,12 @@ test('-r silent', t => {
     });
 });
 
-test('-c lcov', t => {
+test('-c lcov', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
-        exec: cb => {
+        exec: (cb) => {
             const runner = fork(runnerPath, [...testArg, '-c', 'lcov', ...coverageDirArg], { silent: true });
-            runner.on('exit', code => {
+            runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
             });
@@ -84,13 +84,13 @@ test('-c lcov', t => {
     });
 });
 
-test('-c json -c json-summary', t => {
+test('-c json -c json-summary', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
-        exec: cb => {
+        exec: (cb) => {
             const runner = fork(runnerPath, [...testArg, '-c', 'json', '-c', 'json-summary', ...coverageDirArg],
                 { silent: true });
-            runner.on('exit', code => {
+            runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
             });
@@ -106,12 +106,12 @@ test('-c json -c json-summary', t => {
     });
 });
 
-test('-c html', t => {
+test('-c html', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
-        exec: cb => {
+        exec: (cb) => {
             const runner = fork(runnerPath, [...testArg, '-c', 'html', ...coverageDirArg], { silent: true });
-            runner.on('exit', code => {
+            runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
             });
@@ -125,10 +125,10 @@ test('-c html', t => {
     });
 });
 
-test('-c console', t => {
+test('-c console', (t) => {
     const runner = fork(runnerPath, [...testArg, '-c', 'console', ...coverageDirArg], { silent: true });
     t.plan(3);
-    runner.on('exit', code => {
+    runner.on('exit', (code) => {
         t.equal(code, 0, 'exit code 0');
         t.end();
     });
@@ -145,28 +145,28 @@ test('-c console', t => {
     runner.stderr.on('data', data => t.error(data.toString()));
 });
 
-test('--web 8080 -c console', t => {
+test('--web 8080 -c console', (t) => {
     const runner = fork(runnerPath, [...testArg, '--web', '8080', '-c', 'console', ...coverageDirArg],
         { silent: true });
     t.plan(1);
     runner.on('exit', () => {
         t.end();
     });
-    runner.stderr.on('data', data => {
+    runner.stderr.on('data', (data) => {
         if (data.toString().includes('Implications failed')) {
             t.pass('should not start without -c html');
         }
     });
 });
 
-test('-w', t => {
+test('-w', (t) => {
     const runner = fork(runnerPath, [...testArg, '-w', ...coverageDirArg], { silent: true });
     const counter = {};
     t.plan(18);
     runner.on('exit', () => t.end);
     runner.on('message', ({ name, body }) => {
         if (!counter[name]) counter[name] = 0;
-        counter[name]++;
+        counter[name] += 1;
         if (name === 'start') {
             if (counter[name] === 1) {
                 t.pass('start (master)');
@@ -203,7 +203,7 @@ test('-w', t => {
             t.pass('run watcher');
             t.ok(body.includes(successTestPath), 'list of watching files includes test file');
             // trigger file change event
-            fs.utimes(successTestPath, new Date(), new Date(), err => {
+            fs.utimes(successTestPath, new Date(), new Date(), (err) => {
                 if (err) t.ifError(err);
             });
         }
@@ -227,7 +227,7 @@ test('-w', t => {
             if (counter[name] === 1) {
                 t.pass('first watcher child exit');
                 // trigger file change event again
-                fs.utimes(successTestPath, new Date(), new Date(), err => {
+                fs.utimes(successTestPath, new Date(), new Date(), (err) => {
                     if (err) t.ifError(err);
                 });
             }
@@ -244,7 +244,7 @@ test('-w', t => {
     runner.stderr.on('data', data => t.error(data.toString()));
 });
 
-test('after', t => {
+test('after', (t) => {
     process.nextTick(() => {
         fs.remove(coverageDir, t.end);
     });

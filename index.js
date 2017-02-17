@@ -60,7 +60,7 @@ const argv = require('yargs')
         },
     })
     .implies('web', 'coverage')
-    .check(a => {
+    .check((a) => {
         if (a.web && !_.castArray(a.coverage).includes('html')) {
             throw new Error('Implications failed:\n web -> coverage html');
         }
@@ -109,7 +109,7 @@ function tapeReporterStream() {
 }
 
 function getTestFiles() {
-    return fs.walkSync(rootPath).filter(filepath => {
+    return fs.walkSync(rootPath).filter((filepath) => {
         const p = relativePath(filepath);
         if (minimatch(p, '!*.js', { matchBase: true })) return false;
         if (_.some(ignorePath, v => minimatch(p, v))) return false;
@@ -143,7 +143,9 @@ function serveCoverageHtml(port) {
 function filterChildArgs(args) {
     const _args = _.clone(args);
     const ix = _args.indexOf('--web');
-    ~ix && _args.splice(ix, 2);
+    if (_args.includes('--web')) {
+        _args.splice(ix, 2);
+    }
     _.pull(_args, '-w', '--watch');
     ipcSend({ name: 'filter', body: _args });
     return _args;
@@ -170,7 +172,7 @@ function runWatcher(args) {
                     watcher.watch(_.concat(getTestFiles(), getCoverageFiles()));
                 });
                 // bubble child message
-                child.process.on('message', message => {
+                child.process.on('message', (message) => {
                     ipcSend(message);
                 });
                 // child.process.on('error', message => ipcSend(message));
@@ -213,7 +215,7 @@ function runTest() {
         const child = fork(filePath, [], { silent: true });
         outputWrite(outputFilenameHeader(filePath, filePath === testFiles[0]));
         reporter.emit('dot-line-break');
-        child.stdout.on('data', data => {
+        child.stdout.on('data', (data) => {
             reporter.write(data.toString());
         });
         child.once('exit', () => cb());
@@ -269,7 +271,7 @@ if ((argv.coverage || argv.watch) && isMaster) {
         }
     });
     // bubble child message
-    test.on('message', message => {
+    test.on('message', (message) => {
         ipcSend(message);
     });
     test.on('error', err => ipcSend({ name: 'error', body: err }));
