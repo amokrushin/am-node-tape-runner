@@ -7,7 +7,7 @@ const chalk = require('chalk');
 const path = require('path');
 const { fork } = require('child_process');
 const { PassThrough } = require('stream');
-const debug = require('util').debuglog('am-node-tape-runner');
+const debug = require('util').debuglog('iamtest');
 
 const nycPath = require.resolve('nyc/bin/nyc.js');
 const rootPath = path.join(process.cwd(), '/test');
