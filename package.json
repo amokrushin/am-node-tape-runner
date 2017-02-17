@@ -9,6 +9,9 @@
   "license": "MIT",
   "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
   "main": "index.js",
+  "bin": {
+    "iamtest": "./bin/cmd.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amokrushin/am-node-tape-runner.git"
