@@ -12,8 +12,21 @@ require('am-node-tape-runner');
 
 Then run tests with
 
+global
 ```bash
-node test
+$ iamtest
+```
+local
+```bash
+$ node_modules/.bin/iamtest
+```
+package.json
+```json
+{
+  "script": {
+    "test": "iamtest"
+  }
+}
 ```
 
 ```bash
@@ -29,4 +42,16 @@ Options:
   --verbose       debug log                                            [boolean]
   --coverageDir   see nyc --report-dir                                  [string]
   -h, --help      Show help                                            [boolean]
+```
+
+## Example
+package.json
+```json
+{
+  "script": {
+    "test": "iamtest",
+    "test:unit": "iamtest ./test/unit/*",
+    "codecov": "iamtest ./test/unit/* -c lcovonly && codecov"
+  }
+}
 ```
