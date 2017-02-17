@@ -1,7 +1,8 @@
 const _ = require('lodash');
 const async = require('async');
 const minimatch = require('minimatch');
-const fs = require('fs-extra');
+const fs = require('fs');
+const klawSync = require('klaw-sync');
 const chalk = require('chalk');
 const path = require('path');
 const { fork } = require('child_process');
@@ -81,8 +82,11 @@ function ipcSend(message) {
     if (process.send) process.send(message);
 }
 
-function relativePath(p) {
-    return p.replace(`${rootPath}/`, '');
+function relativePath(filepath) {
+    if (!filepath || typeof filepath !== 'string') {
+        throw new TypeError(`Invalid file path: ${filepath}`);
+    }
+    return filepath.replace(`${rootPath}/`, '');
 }
 
 function outputWrite(str) {
@@ -109,18 +113,26 @@ function tapeReporterStream() {
 }
 
 function getTestFiles() {
-    return fs.walkSync(rootPath).filter((filepath) => {
-        const p = relativePath(filepath);
-        if (minimatch(p, '!*.js', { matchBase: true })) return false;
-        if (_.some(ignorePath, v => minimatch(p, v))) return false;
-        if (filterPath.length && !_.some(filterPath, v => minimatch(p, v))) return false;
-        return true;
-    });
+    return klawSync(rootPath)
+        .filter((item) => {
+            const filepath = item.path;
+            const p = relativePath(filepath);
+            if (minimatch(p, '!*.js', { matchBase: true })) return false;
+            if (_.some(ignorePath, v => minimatch(p, v))) return false;
+            if (filterPath.length && !_.some(filterPath, v => minimatch(p, v))) return false;
+            return true;
+        })
+        .map(item => item.path);
 }
 
 function getCoverageFiles() {
     const coverageDir = argv.coverageDir || path.resolve(rootPath, '../coverage');
-    const report = fs.readJsonSync(path.join(coverageDir, 'coverage-summary.json'));
+    const coverageReportPath = path.join(coverageDir, 'coverage-summary.json');
+    if (!fs.existsSync(coverageReportPath)) {
+        throw new Error(`Coverage report file ${coverageReportPath} not found`);
+    }
+    // eslint-disable-next-line import/no-dynamic-require, global-require
+    const report = require(coverageReportPath);
     return _.pull(_.keys(report), 'total');
 }
 
@@ -183,22 +195,22 @@ function runWatcher(args) {
     });
 }
 
-function outputFilenameHeader(filePath, isFirst) {
+function outputFilenameHeader(filepath, isFirst) {
     let filenameHeader = '';
     if (argv.reporter === 'tape') {
         const sof = isFirst ? '#\n#' : '\n#\n#';
         const eof = '\n#\n';
-        const header = relativePath(filePath);
+        const header = relativePath(filepath);
         filenameHeader = `${sof}${header}${eof}`;
     } else if (argv.reporter === 'dots') {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filePath), 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filepath), 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     } else if (!isSilent) {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '\n' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filePath), 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filepath), 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     }
     return filenameHeader;
