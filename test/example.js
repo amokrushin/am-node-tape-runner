@@ -8,7 +8,7 @@ test('flow', (t) => {
     const cwd = path.resolve(process.cwd(), 'example/flow');
     async.series([
         cb => exec('yarn', { cwd }, cb),
-        cb => exec('npm test -s -- -r tape', { cwd }, cb),
+        cb => exec('node ../../bin/iamtest.js --babel -r tape', { cwd }, cb),
         cb => fs.readFile(path.join(__dirname, 'fixture/flow.tap'), 'utf8', cb),
     ], (err, res) => {
         const [, yarnStderr] = res[0];
@@ -16,6 +16,7 @@ test('flow', (t) => {
         const expectedTap = res[2];
         t.ifError(yarnStderr, 'exec yarn ok');
         t.ifError(testStderr, 'exec npm test ok');
+        console.log(testStdout);
         t.equal(testStdout, expectedTap, 'tap output match');
         t.end();
     });
@@ -25,7 +26,7 @@ test('flow-runtime', (t) => {
     const cwd = path.resolve(process.cwd(), 'example/flow-runtime');
     async.series([
         cb => exec('yarn', { cwd }, cb),
-        cb => exec('npm test -s -- -r tape', { cwd }, cb),
+        cb => exec('node ../../bin/iamtest.js --babel -r tape', { cwd }, cb),
         cb => fs.readFile(path.join(__dirname, 'fixture/flow-runtime.tap'), 'utf8', cb),
     ], (err, res) => {
         const [, yarnStderr] = res[0];
