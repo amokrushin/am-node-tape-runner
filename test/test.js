@@ -4,14 +4,14 @@ const path = require('path');
 const fs = require('fs-extra');
 const async = require('async');
 
-const runnerPath = process.cwd();
-const coverageDir = path.join(runnerPath, 'coverage-test');
-const successTestPath = path.join(__dirname, 'success.js');
+const iamtestBin = path.resolve(process.cwd(), './bin/iamtest.js');
+const coverageDir = path.join(process.cwd(), 'coverage-test');
+const successTestPath = path.join(__dirname, 'fixture/success.js');
 const coverageDirArg = ['--coverage-dir', coverageDir];
-const testArg = ['test', successTestPath];
+const testArg = [successTestPath];
 
 test('without args', (t) => {
-    const runner = fork(runnerPath, [...testArg], { silent: true });
+    const runner = fork(iamtestBin, [...testArg], { silent: true });
     runner.on('exit', (code) => {
         t.equal(code, 0, 'exit code 0');
         t.end();
@@ -23,7 +23,7 @@ test('-r tape', (t) => {
     async.parallel({
         actual: (cb) => {
             let output = '';
-            const runner = fork(runnerPath, [...testArg, '-r', 'tape'], { silent: true });
+            const runner = fork(iamtestBin, [...testArg, '-r', 'tape'], { silent: true });
             runner.stdout.on('data', (data) => {
                 output += data.toString();
             });
@@ -45,7 +45,7 @@ test('-r silent', (t) => {
     async.parallel({
         actual: (cb) => {
             let output = '';
-            const runner = fork(runnerPath, [...testArg, '-r', 'silent'], { silent: true });
+            const runner = fork(iamtestBin, [...testArg, '-r', 'silent'], { silent: true });
             runner.stdout.on('data', (data) => {
                 output += data.toString();
             });
@@ -67,7 +67,7 @@ test('-c lcov', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: (cb) => {
-            const runner = fork(runnerPath, [...testArg, '-c', 'lcov', ...coverageDirArg], { silent: true });
+            const runner = fork(iamtestBin, [...testArg, '-c', 'lcov', ...coverageDirArg], { silent: true });
             runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
@@ -88,7 +88,7 @@ test('-c json -c json-summary', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: (cb) => {
-            const runner = fork(runnerPath, [...testArg, '-c', 'json', '-c', 'json-summary', ...coverageDirArg],
+            const runner = fork(iamtestBin, [...testArg, '-c', 'json', '-c', 'json-summary', ...coverageDirArg],
                 { silent: true });
             runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
@@ -110,7 +110,7 @@ test('-c html', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
         exec: (cb) => {
-            const runner = fork(runnerPath, [...testArg, '-c', 'html', ...coverageDirArg], { silent: true });
+            const runner = fork(iamtestBin, [...testArg, '-c', 'html', ...coverageDirArg], { silent: true });
             runner.on('exit', (code) => {
                 t.equal(code, 0, 'exit code 0');
                 cb();
@@ -126,7 +126,7 @@ test('-c html', (t) => {
 });
 
 test('-c console', (t) => {
-    const runner = fork(runnerPath, [...testArg, '-c', 'console', ...coverageDirArg], { silent: true });
+    const runner = fork(iamtestBin, [...testArg, '-c', 'console', ...coverageDirArg], { silent: true });
     t.plan(3);
     runner.on('exit', (code) => {
         t.equal(code, 0, 'exit code 0');
@@ -146,7 +146,7 @@ test('-c console', (t) => {
 });
 
 test('--web 8080 -c console', (t) => {
-    const runner = fork(runnerPath, [...testArg, '--web', '8080', '-c', 'console', ...coverageDirArg],
+    const runner = fork(iamtestBin, [...testArg, '--web', '8080', '-c', 'console', ...coverageDirArg],
         { silent: true });
     t.plan(1);
     runner.on('exit', () => {
@@ -160,7 +160,7 @@ test('--web 8080 -c console', (t) => {
 });
 
 test('-w', (t) => {
-    const runner = fork(runnerPath, [...testArg, '-w', ...coverageDirArg], { silent: true });
+    const runner = fork(iamtestBin, [...testArg, '-w', ...coverageDirArg], { silent: true });
     const counter = {};
     t.plan(18);
     runner.on('exit', () => t.end);
@@ -240,6 +240,16 @@ test('-w', (t) => {
         if (name === 'error') {
             t.fail(name, body);
         }
+    });
+    runner.stderr.on('data', data => t.error(data.toString()));
+});
+
+test('--babel', (t) => {
+    const babelTestPath = path.join(__dirname, 'fixture/babel.js');
+    const runner = fork(iamtestBin, [babelTestPath, '--babel'], { silent: true });
+    runner.on('exit', (code) => {
+        t.equal(code, 0, 'exit code 0');
+        t.end();
     });
     runner.stderr.on('data', data => t.error(data.toString()));
 });

@@ -8,6 +8,11 @@
   },
   "license": "MIT",
   "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
+  "files": [
+    "bin",
+    "lib",
+    "index.js"
+  ],
   "main": "index.js",
   "bin": {
     "iamtest": "./bin/iamtest.js"
@@ -17,12 +22,14 @@
     "url": "git+https://github.com/amokrushin/iamtest.git"
   },
   "scripts": {
-    "test": "node ./bin/iamtest.js",
-    "codecov": "node ./bin/iamtest.js -c lcovonly && ./node_modules/.bin/codecov"
+    "codecov": "node ./bin/iamtest.js test/test.js -c lcovonly && ./node_modules/.bin/codecov",
+    "test": "node ./bin/iamtest.js"
   },
   "dependencies": {
     "am-tap-dot": "^1.0.1",
     "async": "^2.1.4",
+    "babel-cli": "^6.23.0",
+    "babel-preset-env": "^1.1.8",
     "chalk": "^1.1.3",
     "klaw-sync": "^1.1.1",
     "lodash": "^4.17.2",

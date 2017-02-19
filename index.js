@@ -8,88 +8,24 @@ const path = require('path');
 const { fork } = require('child_process');
 const { PassThrough } = require('stream');
 const debug = require('util').debuglog('iamtest');
-
-const nycPath = require.resolve('nyc/bin/nyc.js');
-const rootPath = path.join(process.cwd(), '/test');
-
+/*  lazy load
+ *  const tapSpec = require('tap-spec');
+ *  const tapSummary = require('tap-summary');
+ *  const { amTapDot } = require('am-tap-dot');
+ *  const StaticServer = require('static-server');
+ */
 const Child = require('./lib/Child');
 const Watcher = require('./lib/Watcher');
 
-// lazy load
-// const tapSpec = require('tap-spec');
-// const tapSummary = require('tap-summary');
-// const { amTapDot } = require('am-tap-dot');
-// const StaticServer = require('static-server');
-
-const argv = require('yargs')
-    .options({
-        r: {
-            alias: 'reporter',
-            choices: ['dots', 'spec', 'summary', 'tape', 'silent'],
-            describe: 'test reporter',
-            default: 'dots',
-        },
-        c: {
-            alias: 'coverage',
-            choices: ['console', 'html', 'json', 'json-summary', 'lcov', 'lcovonly',
-                'text', 'text-lcov', 'text-summary'],
-            describe: 'coverage reporter',
-        },
-        web: {
-            describe: 'web server for coverage report',
-            type: 'number',
-            nargs: 1,
-        },
-        w: {
-            alias: 'watch',
-            describe: 'watch for changes',
-            boolean: true,
-        },
-        child: {
-            describe: 'child process',
-            boolean: true,
-        },
-        verbose: {
-            describe: 'debug log',
-            boolean: true,
-        },
-        h: { alias: 'help' },
-        coverageDir: {
-            describe: 'see nyc --report-dir',
-            type: 'string',
-            nargs: 1,
-        },
-    })
-    .implies('web', 'coverage')
-    .check((a) => {
-        if (a.web && !_.castArray(a.coverage).includes('html')) {
-            throw new Error('Implications failed:\n web -> coverage html');
-        }
-        return true;
-    })
-    .epilogue('For more information see https://github.com/amokrushin/stream-zip')
-    .help()
-    .argv;
+const config = require('./lib/config')(path.join(__dirname, '.iamtest.js'));
+const argv = require('./lib/yargs')();
 
 const isMaster = !argv.child;
-const ignorePath = ['mock/*', 'resources/*', 'skip/*', 'util/*', 'index.js'];
-const filterPath = _.map(argv._, v => v.replace(`${rootPath}/`, '').replace('./test/', ''));
 const isSilent = argv.reporter === 'silent';
-
-debug('START', `reporter: ${argv.reporter}`);
-debug('IS MASTER', isMaster);
-debug('IGNORE PATH', ignorePath);
-debug('FILTER PATH', filterPath);
+const argsPaths = _.map(argv._, p => path.resolve(process.cwd(), p));
 
 function ipcSend(message) {
     if (process.send) process.send(message);
-}
-
-function relativePath(filepath) {
-    if (!filepath || typeof filepath !== 'string') {
-        throw new TypeError(`Invalid file path: ${filepath}`);
-    }
-    return filepath.replace(`${rootPath}/`, '');
 }
 
 function outputWrite(str) {
@@ -98,9 +34,11 @@ function outputWrite(str) {
     }
 }
 
-const verbose = argv.verbose
-    ? (...args) => outputWrite(`${chalk.cyan(args[0])}\n${args.slice(1).join('')}`)
-    : () => {};
+function verbose(...args) {
+    if (argv.verbose) {
+        outputWrite(`${chalk.cyan(args[0])}\n${args.slice(1).join('')}`);
+    }
+}
 
 function tapeReporterStream() {
     // eslint-disable-next-line global-require
@@ -116,20 +54,23 @@ function tapeReporterStream() {
 }
 
 function getTestFiles() {
-    return klawSync(rootPath)
+    // if only single test file then do not ignore it
+    if (argsPaths.length === 1 && !argsPaths[0].includes('*')) {
+        return argsPaths;
+    }
+    return klawSync(config.rootPath)
         .filter((item) => {
             const filepath = item.path;
-            const p = relativePath(filepath);
-            if (minimatch(p, '!*.js', { matchBase: true })) return false;
-            if (_.some(ignorePath, v => minimatch(p, v))) return false;
-            if (filterPath.length && !_.some(filterPath, v => minimatch(p, v))) return false;
+            if (minimatch(filepath, '!*.js', { matchBase: true })) return false;
+            if (_.some(config.ignorePath, v => minimatch(filepath, v))) return false;
+            if (argsPaths.length && !_.some(argsPaths, v => minimatch(filepath, v))) return false;
             return true;
         })
         .map(item => item.path);
 }
 
 function getCoverageFiles() {
-    const coverageDir = argv.coverageDir || path.resolve(rootPath, '../coverage');
+    const coverageDir = argv.coverageDir || path.join(process.cwd(), 'coverage');
     const coverageReportPath = path.join(coverageDir, 'coverage-summary.json');
     if (!fs.existsSync(coverageReportPath)) {
         throw new Error(`Coverage report file ${coverageReportPath} not found`);
@@ -144,7 +85,7 @@ function serveCoverageHtml(port) {
     const StaticServer = require('static-server');
 
     const server = new StaticServer({
-        rootPath: path.resolve(rootPath, '../coverage'),
+        rootPath: path.join(process.cwd(), 'coverage'),
         name: 'Coverage Report',
         port,
     });
@@ -179,18 +120,16 @@ function runWatcher(args) {
         })
         .on('debounce', () => {
             child.exit().then(() => {
-                child = new Child(nycPath, _args, { verbose });
-                ipcSend({ name: 'child fork', body: { id: child.id, script: nycPath, args: _args } });
+                child = new Child(config.nycPath, _args, { verbose });
+                ipcSend({ name: 'child fork', body: { id: child.id, script: config.nycPath, args: _args } });
                 child.process.once('exit', () => {
                     ipcSend({ name: 'child exit', body: { id: child.id } });
-                    // child.process.removeAllListeners();
                     watcher.watch(_.concat(getTestFiles(), getCoverageFiles()));
                 });
                 // bubble child message
                 child.process.on('message', (message) => {
                     ipcSend(message);
                 });
-                // child.process.on('error', message => ipcSend(message));
             });
         });
     process.nextTick(() => {
@@ -200,20 +139,20 @@ function runWatcher(args) {
 
 function outputFilenameHeader(filepath, isFirst) {
     let filenameHeader = '';
+    const relativeFilePath = path.relative(config.rootPath, filepath);
     if (argv.reporter === 'tape') {
         const sof = isFirst ? '#\n#' : '\n#\n#';
         const eof = '\n#\n';
-        const header = relativePath(filepath);
-        filenameHeader = `${sof}${header}${eof}`;
+        filenameHeader = `${sof}${relativeFilePath}${eof}`;
     } else if (argv.reporter === 'dots') {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filepath), 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativeFilePath, 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     } else if (!isSilent) {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '\n' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativePath(filepath), 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${_.padEnd(relativeFilePath, 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     }
     return filenameHeader;
@@ -227,7 +166,12 @@ function runTest() {
     const testFiles = getTestFiles();
     debug(`TEST FILES: ${testFiles.length}`, `\n  • ${testFiles.join('\n  • ')}\n`);
     async.eachSeries(testFiles, (filePath, cb) => {
-        const child = fork(filePath, [], { silent: true });
+        const execPath = argv.babel ? config.babelNodeBinPath : 'node';
+        debug('RUN TEST:', `${execPath} ${filePath}`);
+        const child = fork(filePath, [], {
+            silent: true,
+            execPath,
+        });
         outputWrite(outputFilenameHeader(filePath, filePath === testFiles[0]));
         reporter.emit('dot-line-break');
         child.stdout.on('data', (data) => {
@@ -241,6 +185,11 @@ function runTest() {
         reporter.end();
     });
 }
+
+debug('START', `reporter: ${argv.reporter}`);
+debug('IS MASTER', isMaster);
+debug('IGNORE PATH', config.ignorePath);
+debug('FILTER PATH', argsPaths);
 
 ipcSend({ name: 'start', body: argv });
 
@@ -259,7 +208,6 @@ if ((argv.coverage || argv.watch) && isMaster) {
         }
         if (_.isArray(argv.coverage)) {
             reporters.push(..._.without(argv.coverage, 'console'));
-            // Array.prototype.push.apply(reporters, _.without(argv.coverage, 'console'));
         } else if (argv.coverage !== 'console') {
             reporters.push(argv.coverage);
         }
@@ -277,7 +225,7 @@ if ((argv.coverage || argv.watch) && isMaster) {
 
     ipcSend({ name: 'run nyc', body: args });
 
-    const test = fork(nycPath, args, { stdio: 'inherit' });
+    const test = fork(config.nycPath, args, { stdio: 'inherit' });
     test.on('exit', () => {
         if (argv.web && _.castArray(argv.coverage).includes('html')) {
             serveCoverageHtml(argv.web);
