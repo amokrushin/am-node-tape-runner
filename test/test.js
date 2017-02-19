@@ -238,7 +238,7 @@ test('-w', (t) => {
             }
         }
         if (name === 'error') {
-            t.fail(body);
+            t.fail(name, body);
         }
     });
     runner.stderr.on('data', data => t.error(data.toString()));

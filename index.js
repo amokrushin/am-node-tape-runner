@@ -77,6 +77,9 @@ const filterPath = _.map(argv._, v => v.replace(`${rootPath}/`, '').replace('./t
 const isSilent = argv.reporter === 'silent';
 
 debug('START', `reporter: ${argv.reporter}`);
+debug('IS MASTER', isMaster);
+debug('IGNORE PATH', ignorePath);
+debug('FILTER PATH', filterPath);
 
 function ipcSend(message) {
     if (process.send) process.send(message);
@@ -222,7 +225,7 @@ function runTest() {
         reporter.pipe(process.stdout);
     }
     const testFiles = getTestFiles();
-    debug('TEST FILES', `\n  • ${testFiles.join('\n  • ')}\n`);
+    debug(`TEST FILES: ${testFiles.length}`, `\n  • ${testFiles.join('\n  • ')}\n`);
     async.eachSeries(testFiles, (filePath, cb) => {
         const child = fork(filePath, [], { silent: true });
         outputWrite(outputFilenameHeader(filePath, filePath === testFiles[0]));
@@ -242,7 +245,8 @@ function runTest() {
 ipcSend({ name: 'start', body: argv });
 
 if (isMaster) {
-    verbose('TEST FILES', getTestFiles().map(f => `  ${f}\n`).join(''));
+    const testFiles = getTestFiles();
+    verbose(`TEST FILES: ${testFiles.length}`, testFiles.map(f => `  ${f}\n`).join(''));
 }
 
 if ((argv.coverage || argv.watch) && isMaster) {
