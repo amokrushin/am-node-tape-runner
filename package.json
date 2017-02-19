@@ -10,15 +10,15 @@
   "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
   "main": "index.js",
   "bin": {
-    "iamtest": "./bin/cmd.js"
+    "iamtest": "./bin/iamtest.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amokrushin/iamtest.git"
   },
   "scripts": {
-    "test": "node test",
-    "codecov": "node test -c lcovonly && ./node_modules/.bin/codecov"
+    "test": "node ./bin/iamtest.js",
+    "codecov": "node ./bin/iamtest.js -c lcovonly && ./node_modules/.bin/codecov"
   },
   "dependencies": {
     "am-tap-dot": "^1.0.1",
