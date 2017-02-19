@@ -1,0 +1,17 @@
+{
+  "name": "iamtest-flow-runtime-example",
+  "version": "0.1.0",
+  "description": "iamtest flow runtime example",
+  "license": "MIT",
+  "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
+  "main": "index.js",
+  "scripts": {
+    "test": "../../bin/iamtest.js --babel"
+  },
+  "devDependencies": {
+    "babel-plugin-flow-runtime": "^0.5.0",
+    "babel-preset-flow": "^6.23.0",
+    "flow-runtime": "^0.5.0",
+    "tape": "^4.6.3"
+  }
+}
