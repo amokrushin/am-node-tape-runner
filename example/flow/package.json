@@ -6,7 +6,7 @@
   "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
   "main": "index.js",
   "scripts": {
-    "test": "../../bin/iamtest.js --babel"
+    "test": "node ../../bin/iamtest.js --babel"
   },
   "devDependencies": {
     "babel-preset-flow": "^6.23.0",
