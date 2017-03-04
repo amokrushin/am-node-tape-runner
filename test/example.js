@@ -38,3 +38,20 @@ test('flow-runtime', (t) => {
         t.end();
     });
 });
+
+test('flow-remove-types', (t) => {
+    const cwd = path.resolve(process.cwd(), 'example/flow-remove-types');
+    async.series([
+        cb => exec('yarn', { cwd }, cb),
+        cb => exec('node ../../bin/iamtest.js --flow -r tape', { cwd }, cb),
+        cb => fs.readFile(path.join(__dirname, 'fixture/flow-remove-types.tap'), 'utf8', cb),
+    ], (err, res) => {
+        const [, yarnStderr] = res[0];
+        const [testStdout, testStderr] = res[1];
+        const expectedTap = res[2];
+        t.ifError(yarnStderr, 'exec yarn ok');
+        t.ifError(testStderr, 'exec npm test ok');
+        t.equal(testStdout, expectedTap, 'tap output match');
+        t.end();
+    });
+});

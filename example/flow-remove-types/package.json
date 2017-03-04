@@ -1,0 +1,15 @@
+{
+  "name": "iamtest-flow-example",
+  "version": "0.1.0",
+  "description": "iamtest flow example",
+  "license": "MIT",
+  "author": "Anton Mokrushin <anton@mokr.org> (mokr.org)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ../../bin/iamtest.js --flow"
+  },
+  "devDependencies": {
+    "flow-remove-types": "^1.2.0",
+    "tape": "^4.6.3"
+  }
+}

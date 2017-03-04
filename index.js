@@ -166,7 +166,13 @@ function runTest() {
     const testFiles = getTestFiles();
     debug(`TEST FILES: ${testFiles.length}`, `\n  • ${testFiles.join('\n  • ')}\n`);
     async.eachSeries(testFiles, (filePath, cb) => {
-        const execPath = argv.babel ? config.babelNodeBinPath : 'node';
+        let execPath = 'node';
+        if (argv.flow) {
+            execPath = config.flowNodeBinPath;
+        }
+        if (argv.babel) {
+            execPath = config.babelNodeBinPath;
+        }
         debug('RUN TEST:', `${execPath} ${filePath}`);
         const child = fork(filePath, [], {
             silent: true,
