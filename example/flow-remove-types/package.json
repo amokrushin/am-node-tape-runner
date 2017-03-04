@@ -9,7 +9,6 @@
     "test": "node ../../bin/iamtest.js --flow"
   },
   "devDependencies": {
-    "flow-remove-types": "^1.2.0",
     "tape": "^4.6.3"
   }
 }
