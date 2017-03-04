@@ -39,12 +39,14 @@ Options:
         [choices: "dots", "spec", "summary", "tape", "silent"] [default: "dots"]
   -c, --coverage  coverage reporter
         [choices: "console", "html", "json", "json-summary", "lcov", "lcovonly",
-        "text", "text-lcov", "text-summary"]
+                                            "text", "text-lcov", "text-summary"]
   --web           web server for coverage report                        [number]
   -w, --watch     watch for changes                                    [boolean]
   --child         child process                                        [boolean]
   --verbose       debug log                                            [boolean]
   --coverageDir   see nyc --report-dir                                  [string]
+  --babel         babel                                                [boolean]
+  --flow          flow remove types                                    [boolean]
   -h, --help      Show help                                            [boolean]
 ```
 
