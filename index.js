@@ -17,7 +17,7 @@ const debug = require('util').debuglog('iamtest');
 const Child = require('./lib/Child');
 const Watcher = require('./lib/Watcher');
 
-const config = require('./lib/config')(path.join(__dirname, '.iamtest.js'));
+const config = require('./lib/config')(path.join(process.cwd(), '.iamtest.js'));
 const argv = require('./lib/yargs')();
 
 const isMaster = !argv.child;
