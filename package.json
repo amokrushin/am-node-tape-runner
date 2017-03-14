@@ -23,7 +23,7 @@
   },
   "scripts": {
     "codecov": "node ./bin/iamtest.js test/test.js -c lcovonly && ./node_modules/.bin/codecov",
-    "git-reset": "git pull && git reset --hard HEAD && git clean -df",
+    "git-reset": "git reset --hard HEAD && git clean -df && git pull",
     "test": "node ./bin/iamtest.js"
   },
   "dependencies": {
