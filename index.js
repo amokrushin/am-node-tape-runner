@@ -158,12 +158,13 @@ function outputFilenameHeader(filepath, isFirst) {
     return filenameHeader;
 }
 
-function runTest() {
+function runTest(callback) {
     const reporter = tapeReporterStream();
     if (!isSilent) {
         reporter.pipe(process.stdout);
     }
     const testFiles = getTestFiles();
+    let exitCode = 0;
     debug(`TEST FILES: ${testFiles.length}`, `\n  • ${testFiles.join('\n  • ')}\n`);
     async.eachSeries(testFiles, (filePath, cb) => {
         let execPath = 'node';
@@ -183,12 +184,16 @@ function runTest() {
         child.stdout.on('data', (data) => {
             reporter.write(data.toString());
         });
-        child.once('exit', () => cb());
+        child.once('exit', (code) => {
+            exitCode += code;
+            cb();
+        });
         child.stdout.on('end', () => {});
         child.stderr.pipe(process.stderr);
         child.once('error', err => ipcSend({ name: 'error', body: err }));
     }, () => {
         reporter.end();
+        callback(null, exitCode ? 1 : 0);
     });
 }
 
@@ -232,12 +237,15 @@ if ((argv.coverage || argv.watch) && isMaster) {
     ipcSend({ name: 'run nyc', body: args });
 
     const test = fork(config.nycPath, args, { stdio: 'inherit' });
-    test.on('exit', () => {
+    test.on('exit', (code) => {
         if (argv.web && _.castArray(argv.coverage).includes('html')) {
             serveCoverageHtml(argv.web);
         }
         if (argv.watch) {
             runWatcher(args);
+        }
+        if (!argv.web && !argv.watch) {
+            process.exit(code);
         }
     });
     // bubble child message
@@ -248,5 +256,10 @@ if ((argv.coverage || argv.watch) && isMaster) {
 } else {
     debug('RUN TESTS');
     ipcSend({ name: 'run test' });
-    runTest();
+    runTest((err, code) => {
+        debug('FINISH TESTS', `code=${code}`);
+        if (code) {
+            process.exit(code);
+        }
+    });
 }
