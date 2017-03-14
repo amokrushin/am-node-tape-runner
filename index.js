@@ -259,7 +259,9 @@ if ((argv.coverage || argv.watch) && isMaster) {
     runTest((err, code) => {
         debug('FINISH TESTS', `code=${code}`);
         if (code) {
-            process.exit(code);
+            process.nextTick(() => {
+                process.exit(code);
+            });
         }
     });
 }
