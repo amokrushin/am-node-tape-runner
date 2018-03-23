@@ -22,7 +22,8 @@ $ iamtest
 ```
 local
 ```bash
-$ node_modules/.bin/iamtest
+$ npx iamtest
+$ BABEL_ENV=test npx iamtest --babel
 ```
 package.json
 ```json
