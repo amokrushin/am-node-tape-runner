@@ -14,6 +14,17 @@ $ npm i iamtest -D
 $ yarn add iamtest -D
 ```
 
+## Optional configuration
+
+`.iamtest.js`
+
+```js
+module.exports = {
+    rootPath: 'src/tests',
+    ignorePath: [],
+};
+```
+
 ## Usage
 
 global
