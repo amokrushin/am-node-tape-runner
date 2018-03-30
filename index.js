@@ -243,6 +243,10 @@ if ((argv.coverage || argv.watch) && isMaster) {
 
     ipcSend({ name: 'run nyc', body: args });
 
+    args.unshift('--exclude=.iamtest.js');
+
+    verbose(`EXEC: ${config.nycPath}`, args.map(v => `  ${v}\n`).join(''));
+
     const test = fork(config.nycPath, args, { stdio: 'inherit' });
     test.on('exit', (code) => {
         if (argv.web && castArray(argv.coverage).includes('html')) {
