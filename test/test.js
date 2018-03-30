@@ -19,50 +19,6 @@ test('without args', (t) => {
     runner.stderr.on('data', data => t.error(data.toString()));
 });
 
-test('-r tape', (t) => {
-    async.parallel({
-        actual: (cb) => {
-            let output = '';
-            const runner = fork(iamtestBin, [...testArg, '-r', 'tape'], { silent: true });
-            runner.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-            runner.on('exit', (code) => {
-                t.equal(code, 0, 'exit code 0');
-                cb(null, output);
-            });
-            runner.stderr.on('data', data => t.error(data.toString()));
-        },
-        expected: cb => fs.readFile(path.join(__dirname, 'fixture/success.tap'), 'utf8', cb),
-    }, (err, { actual, expected }) => {
-        if (err) t.ifError(err);
-        t.equal(actual, expected, 'output');
-        t.end();
-    });
-});
-
-test('-r silent', (t) => {
-    async.parallel({
-        actual: (cb) => {
-            let output = '';
-            const runner = fork(iamtestBin, [...testArg, '-r', 'silent'], { silent: true });
-            runner.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-            runner.on('exit', (code) => {
-                t.equal(code, 0, 'exit code 0');
-                cb(null, output);
-            });
-            runner.stderr.on('data', data => t.error(data.toString()));
-        },
-        expected: cb => cb(null, ''),
-    }, (err, { actual, expected }) => {
-        if (err) t.ifError(err);
-        t.equal(actual, expected, 'output');
-        t.end();
-    });
-});
-
 test('-c lcov', (t) => {
     async.series({
         cleanupCoverageDir: cb => fs.remove(coverageDir, cb),
