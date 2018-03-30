@@ -3,11 +3,21 @@ language: node_js
 os:
   - linux
 
-cache: yarn
+cache:
+  - yarn
 
 node_js:
   - 6
   - "stable"
 
 after_success:
-  - npm run codecov
+  - npm run test:coverage && npx codecov
+
+deploy:
+  provider: npm
+  email: anton@mokr.org
+  api_key:
+    secure: KSkJ+Zf2PpP76RIzdAO0COAMg21fALKKS9DURIh0Y4xT0kUNZwS9bpzriH7LztcuLDfdUTTUMC9NhJcBHbV0h0S7B+Vt0/rseM5IRnBKLBxmkkOObxWFkPZhTwoUkoGcBkXG7gbBTyoq8AxkiP4rcBm6ORnJsRu6VHRsoWZjLeeKOoUkjFj1pxp/P+sMRUL1tyGhvctuZDPiLmsvgmQczEEhDxRECIXFKPvP/9xe136jEF6kGuQGVJWqp+Thjmn6OX+8X4d1aafLxYmSnMQV29c+vlbSRHlxtiAIrW44BMakAW2QR4t7YQliMCXI4dRVuaixsU+4eBT61hN8Cm2tZ+txRn+vUt0axFC9JYvV6tt3sJBp7NTN4KW6abMXtHHWiVaW/6VZ960Zai8TkIIQYEgILbpVrc5zAvF1OghrNZWnr+/044FKDHyi40HsAaymFgFDXitc024DdpHpRWa1+8vyYYcfYvFvoPOu7gmzZtMPRiUcFOLAx88PRNaBDFwtSC1VjQiXakvs2KkRIORsrqg6UBRIs5xba3ioVoTJHhyNRD3g29wklnF1ghJ5vzqQc7p7j4b/McSvc9dSMu9/QoZuFXD06lWKyl9m974ocF837jZPr7MiOPRwMBiC7XJRXV9EOlos6Jy+EX/aLgMIOdjwEbKMkefCTKb2PqaWhps=
+  on:
+    tags: true
+    repo: amokrushin/iamtest

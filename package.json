@@ -22,9 +22,9 @@
     "url": "git+https://github.com/amokrushin/iamtest.git"
   },
   "scripts": {
-    "codecov": "node ./bin/iamtest.js test/test.js -c lcovonly && ./node_modules/.bin/codecov",
     "git-reset": "git reset --hard HEAD && git clean -df && git pull",
-    "test": "node ./bin/iamtest.js"
+    "test": "node ./bin/iamtest.js",
+    "test:coverage": "node ./bin/iamtest.js test/test.js -c lcovonly"
   },
   "dependencies": {
     "am-tap-dot": "^1.0.1",
@@ -43,7 +43,6 @@
     "yargs": "^11.0.0"
   },
   "devDependencies": {
-    "codecov": "^1.0.1",
     "fs-extra": "^5.0.0",
     "tape": "^4.8.0"
   }
