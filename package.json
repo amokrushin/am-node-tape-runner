@@ -23,6 +23,7 @@
   },
   "scripts": {
     "git-reset": "git reset --hard HEAD && git clean -df && git pull",
+    "preversion": "npm run test",
     "test": "node ./bin/iamtest.js",
     "test:coverage": "node ./bin/iamtest.js test/test.js -c lcovonly"
   },
