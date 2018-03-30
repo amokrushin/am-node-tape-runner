@@ -244,6 +244,7 @@ if ((argv.coverage || argv.watch) && isMaster) {
     ipcSend({ name: 'run nyc', body: args });
 
     args.unshift('--exclude=.iamtest.js');
+    args.unshift(`--exclude=${path.relative(process.cwd(), config.rootPath)}/**`);
 
     verbose(`EXEC: ${config.nycPath}`, args.map(v => `  ${v}\n`).join(''));
 
