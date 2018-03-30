@@ -1,4 +1,4 @@
-const _ = require('lodash');
+const { map, some, pull, clone, concat, padEnd, castArray, isArray, without, uniq, keys } = require('lodash');
 const async = require('async');
 const minimatch = require('minimatch');
 const fs = require('fs');
@@ -22,7 +22,7 @@ const argv = require('./lib/yargs')();
 
 const isMaster = !argv.child;
 const isSilent = argv.reporter === 'silent';
-const argsPaths = _.map(argv._, p => path.resolve(process.cwd(), p));
+const argsPaths = map(argv._, p => path.resolve(process.cwd(), p));
 
 function ipcSend(message) {
     if (process.send) process.send(message);
@@ -41,16 +41,23 @@ function verbose(...args) {
 }
 
 function tapeReporterStream() {
-    // eslint-disable-next-line global-require
-    if (argv.reporter === 'spec') return require('tap-spec')();
-    // eslint-disable-next-line global-require
-    if (argv.reporter === 'summary') return require('tap-summary')({ ansi: true, progress: true });
-    // eslint-disable-next-line global-require, import/newline-after-import
-    if (argv.reporter === 'dots') return require('am-tap-dot').amTapDot();
-    if (argv.reporter === 'tape') return new PassThrough();
-    if (argv.reporter === 'silent') return new PassThrough();
-    /* istanbul ignore next */
-    throw new Error('invalid reporter value');
+    switch (argv.reporter) {
+        case 'tape':
+        case 'silent':
+            return new PassThrough();
+        case 'spec':
+            // eslint-disable-next-line global-require
+            return require('tap-spec')();
+        case 'summary':
+            // eslint-disable-next-line global-require
+            return require('tap-summary')({ ansi: true, progress: true });
+        case 'dots':
+            // eslint-disable-next-line global-require, import/newline-after-import
+            return require('am-tap-dot').amTapDot();
+        default:
+            /* istanbul ignore next */
+            throw new Error('invalid reporter value');
+    }
 }
 
 function getTestFiles() {
@@ -62,8 +69,8 @@ function getTestFiles() {
         .filter((item) => {
             const filepath = item.path;
             if (minimatch(filepath, '!*.js', { matchBase: true })) return false;
-            if (_.some(config.ignorePath, v => minimatch(filepath, v))) return false;
-            if (argsPaths.length && !_.some(argsPaths, v => minimatch(filepath, v))) return false;
+            if (some(config.ignorePath, v => minimatch(filepath, v))) return false;
+            if (argsPaths.length && !some(argsPaths, v => minimatch(filepath, v))) return false;
             return true;
         })
         .map(item => item.path);
@@ -77,7 +84,7 @@ function getCoverageFiles() {
     }
     // eslint-disable-next-line import/no-dynamic-require, global-require
     const report = require(coverageReportPath);
-    return _.pull(_.keys(report), 'total');
+    return pull(keys(report), 'total');
 }
 
 function serveCoverageHtml(port) {
@@ -97,12 +104,12 @@ function serveCoverageHtml(port) {
 }
 
 function filterChildArgs(args) {
-    const _args = _.clone(args);
+    const _args = clone(args);
     const ix = _args.indexOf('--web');
     if (_args.includes('--web')) {
         _args.splice(ix, 2);
     }
-    _.pull(_args, '-w', '--watch');
+    pull(_args, '-w', '--watch');
     ipcSend({ name: 'filter', body: _args });
     return _args;
 }
@@ -110,7 +117,7 @@ function filterChildArgs(args) {
 function runWatcher(args) {
     let child = new Child(null, [], { verbose });
     const watcher = new Watcher({ verbose });
-    const watchingFiles = _.concat(getTestFiles(), getCoverageFiles());
+    const watchingFiles = concat(getTestFiles(), getCoverageFiles());
     const _args = filterChildArgs(args);
     watcher
         .watch(watchingFiles)
@@ -124,7 +131,7 @@ function runWatcher(args) {
                 ipcSend({ name: 'child fork', body: { id: child.id, script: config.nycPath, args: _args } });
                 child.process.once('exit', () => {
                     ipcSend({ name: 'child exit', body: { id: child.id } });
-                    watcher.watch(_.concat(getTestFiles(), getCoverageFiles()));
+                    watcher.watch(concat(getTestFiles(), getCoverageFiles()));
                 });
                 // bubble child message
                 child.process.on('message', (message) => {
@@ -147,12 +154,12 @@ function outputFilenameHeader(filepath, isFirst) {
     } else if (argv.reporter === 'dots') {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativeFilePath, 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${padEnd(relativeFilePath, 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     } else if (!isSilent) {
         const sof = isFirst ? '\n ' : '\n\n ';
         const eof = isFirst ? '\n' : '\n';
-        const header = chalk.bgWhite.black(` ${_.padEnd(relativeFilePath, 80, ' ')}`);
+        const header = chalk.bgWhite.black(` ${padEnd(relativeFilePath, 80, ' ')}`);
         filenameHeader = `${sof}${header}${eof}`;
     }
     return filenameHeader;
@@ -214,18 +221,18 @@ if ((argv.coverage || argv.watch) && isMaster) {
     const args = ['node', __filename].concat(process.argv.slice(2), '--child');
     if (argv.coverage) {
         const reporters = [];
-        if (_.castArray(argv.coverage).includes('console')) {
+        if (castArray(argv.coverage).includes('console')) {
             reporters.push('text', 'text-summary');
         }
-        if (_.isArray(argv.coverage)) {
-            reporters.push(..._.without(argv.coverage, 'console'));
+        if (isArray(argv.coverage)) {
+            reporters.push(...without(argv.coverage, 'console'));
         } else if (argv.coverage !== 'console') {
             reporters.push(argv.coverage);
         }
         if (argv.watch) {
             reporters.push('json-summary');
         }
-        _.uniq(reporters).reverse().forEach(reporter => args.unshift(`--reporter=${reporter}`));
+        uniq(reporters).reverse().forEach(reporter => args.unshift(`--reporter=${reporter}`));
     } else if (argv.watch) {
         args.unshift('--reporter=json-summary');
     }
@@ -238,7 +245,7 @@ if ((argv.coverage || argv.watch) && isMaster) {
 
     const test = fork(config.nycPath, args, { stdio: 'inherit' });
     test.on('exit', (code) => {
-        if (argv.web && _.castArray(argv.coverage).includes('html')) {
+        if (argv.web && castArray(argv.coverage).includes('html')) {
             serveCoverageHtml(argv.web);
         }
         if (argv.watch) {
